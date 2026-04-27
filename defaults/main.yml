@@ -1,9 +1,23 @@
 ---
 sftp_home_partition: /home
 sftp_group_name: sftpusers
-sftp_directories: []
-sftp_start_directory: ''
 sftp_allow_passwords: False
-sftp_enable_selinux_support: False
 sftp_enable_logging: False
 sftp_nologin_shell: /sbin/nologin
+
+# Common Nginx/Web defaults
+web_group: www-data
+
+# Public SFTP user list — override this in your playbook/inventory.
+# 'home' is optional; defaults to sftp_home_partition/name if omitted.
+# 'mount_source' and 'authorized' are custom additions for this setup.
+# sftp_web_dir and sftp_web_user_ssh_pubkey must be defined in your playbook.
+sftp_users:
+  - name: "{{ hostname }}"
+    groups:
+      - "{{ sftp_group_name }}"
+      - "{{ web_group }}"
+    home: "{{ sftp_home_partition }}/{{ hostname }}"
+    mount_source: "{{ sftp_web_dir }}"
+    authorized:
+      - "{{ sftp_web_user_ssh_pubkey }}"

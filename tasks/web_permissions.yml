@@ -1,0 +1,52 @@
+---
+- name: SFTP-Server | Web Perms | Install inotify-tools
+  ansible.builtin.package:
+    name: inotify-tools
+    state: present
+
+- name: SFTP-Server | Web Perms | Increase max inotify watches for large web dirs
+  ansible.posix.sysctl:
+    name: fs.inotify.max_user_watches
+    value: "524288"
+    state: present
+    reload: true
+
+- name: SFTP-Server | Web Perms | Deploy watcher daemon script
+  ansible.builtin.copy:
+    src: files/sftp-perm-watcher.sh
+    dest: /usr/local/sbin/sftp-perm-watcher.sh
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: SFTP-Server | Web Perms | Create Systemd services for each user
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/sftp-watcher-{{ item.name }}.service"
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Real-time SFTP Permission Watcher for {{ item.name }}
+      After=network.target
+
+      [Service]
+      Type=simple
+      ExecStart=/usr/local/sbin/sftp-perm-watcher.sh "{{ item.mount_source }}" "{{ item.name }}" "{{ web_group | default('www-data') }}"
+      Restart=always
+      RestartSec=3
+
+      [Install]
+      WantedBy=multi-user.target
+  loop: "{{ _sftp_users }}"
+  when: item.mount_source is defined
+  notify: SFTP-Server | Reload systemd
+
+- name: SFTP-Server | Web Perms | Enable and start watcher services
+  ansible.builtin.systemd:
+    name: "sftp-watcher-{{ item.name }}.service"
+    state: restarted
+    enabled: true
+    daemon_reload: true
+  loop: "{{ _sftp_users }}"
+  when: item.mount_source is defined

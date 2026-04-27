@@ -9,3 +9,6 @@
   service:
     name: rsyslog
     state: restarted
+
+- name: SFTP-Server | Reload systemd
+  shell: 'systemctl daemon-reload'
