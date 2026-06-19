@@ -62,6 +62,20 @@
   loop: "{{ _sftp_users }}"
   when: item.mount_source is defined
 
+- name: SFTP-Server | (idempotency) Ensure existing bind mount is removed
+  ansible.posix.mount:
+    path: "{{ item.home }}/ftp-data"
+    state: absent
+  loop: "{{ _sftp_users }}"
+  when: item.mount_source is defined
+
+- name: SFTP-Server | (idempotency) Ensure mount point directory is removed
+  ansible.builtin.file:
+    path: "{{ item.home }}/ftp-data"
+    state: absent
+  loop: "{{ _sftp_users }}"
+  when: item.mount_source is defined
+
 - name: SFTP-Server | Create mount point directory in user home
   ansible.builtin.file:
     path: "{{ item.home }}/ftp-data"
